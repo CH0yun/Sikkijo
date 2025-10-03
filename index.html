@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>식기조 편성기</title>
+    <title>식기조 편성기 by 채영윤</title>
 
     <style>
         :root {
@@ -78,31 +78,27 @@
         .output-cell { font-size: 14px; line-height: 1.6; min-width: 120px; }
         .output-cell .member { display: block; padding: 4px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s; }
         .output-cell .member:active { cursor: grabbing; }
-        .output-cell .excluded-list { margin-top: 8px; font-size: 12px; color: var(--color-primary); }
+        
+        /* ⭐⭐⭐ 1. 스타일 수정: 폰트 크기(em), 줄바꿈(normal) ⭐⭐⭐ */
+        .output-cell .excluded-list { 
+            margin-top: 8px; 
+            font-size: 0.8em; /* 부모 폰트(14px)의 80% 크기 */
+            color: var(--color-primary);
+            white-space: normal; /* 열외 사유가 길어지면 자동으로 줄바꿈 */
+        }
+
         .highlight { background-color: #fff3cd !important; }
         .summary-highlight { background-color: #fff3cd; border-radius: 4px; padding: 2px 4px; }
         .drag-over { background-color: #cce5ff; }
         #summary-cell { padding: 15px; text-align: left; white-space: normal; line-height: 1.8; font-size: 14px; }
         #summary-cell span { cursor: pointer; }
         
-        /* ⭐ 도움말 아이콘 스타일 */
         .help-icon {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            background-color: var(--color-secondary);
-            color: white;
-            border-radius: 50%;
-            text-align: center;
-            font-size: 14px;
-            font-weight: bold;
-            line-height: 20px;
-            cursor: pointer;
-            user-select: none;
-            position: relative;
+            display: inline-block; width: 20px; height: 20px; background-color: var(--color-secondary);
+            color: white; border-radius: 50%; text-align: center; font-size: 14px;
+            font-weight: bold; line-height: 20px; cursor: pointer; user-select: none;
         }
         
-        /* 인쇄용 스타일 */
         @media print {
             body { padding: 0; margin: 0; }
             .no-print { display: none !important; }
@@ -373,7 +369,12 @@
                 if (excludedInThisSlot.length > 0) {
                     const excludedDiv = document.createElement('div');
                     excludedDiv.className = 'excluded-list';
-                    excludedDiv.textContent = `(열외: ${excludedInThisSlot.map(m => `${m.name}(${m.exclusions.get(`${time}-${day}`)})`).join(', ')})`;
+                    const excludedText = excludedInThisSlot
+                        .map(m => {
+                            const reason = m.exclusions.get(`${time}-${day}`);
+                            return reason ? `${m.name}(${reason})` : m.name;
+                        }).join(', ');
+                    excludedDiv.textContent = `(열외: ${excludedText})`;
                     cell.appendChild(excludedDiv);
                 }
             });
@@ -381,7 +382,7 @@
         
         function renderSummary() {
             const summaryCell = document.getElementById('summary-cell');
-            summaryCell.innerHTML = ''; // Clear previous summary
+            summaryCell.innerHTML = '';
             const summarySpans = memberData.filter(m => m.name).map(m => {
                 const span = document.createElement('span');
                 span.dataset.name = m.name;
@@ -402,7 +403,21 @@
         // --- 나머지 함수들 ---
         let currentEditingMemberId = null;
         function openModal(id) { currentEditingMemberId = id; const member = memberData.find(m => m.id === id); if (!member) return; document.getElementById('modal-title').textContent = `${member.name || '이름 없는 인원'} 열외 설정`; const modal = document.getElementById('exclusion-modal'); modal.querySelectorAll('.day-cell').forEach(cell => { const key = `${cell.dataset.time}-${cell.dataset.day}`; const existingReasonInput = cell.querySelector('.exclusion-reason'); if (existingReasonInput) existingReasonInput.remove(); if (member.exclusions.has(key)) { cell.classList.add('excluded'); cell.innerHTML = '●'; const reasonInput = document.createElement('input'); reasonInput.type = 'text'; reasonInput.className = 'exclusion-reason'; reasonInput.placeholder = '사유 입력'; reasonInput.value = member.exclusions.get(key); reasonInput.onclick = (e) => e.stopPropagation(); reasonInput.onchange = (e) => { member.exclusions.set(key, e.target.value); }; cell.appendChild(reasonInput); } else { cell.classList.remove('excluded'); cell.textContent = '○'; } }); modal.style.display = 'flex'; }
-        document.getElementById('exclusion-modal').addEventListener('click', (event) => { if (!event.target.classList.contains('day-cell')) return; if (currentEditingMemberId === null) return; const member = memberData.find(m => m.id === currentEditingMemberId); if (!member) return; const cell = event.target; const key = `${cell.dataset.time}-${cell.dataset.day}`; if (member.exclusions.has(key)) { member.exclusions.delete(key); const reasonInput = cell.querySelector('.exclusion-reason'); if (reasonInput) reasonInput.remove(); cell.classList.remove('excluded'); cell.textContent = '○'; } else { const reason = prompt("열외 사유를 입력하세요 (취소 시 '열외'):", "열외"); if (reason === null) return; member.exclusions.set(key, reason); openModal(currentEditingMemberId); } });
+        document.getElementById('exclusion-modal').addEventListener('click', (event) => {
+            if (!event.target.classList.contains('day-cell')) return; if (currentEditingMemberId === null) return;
+            const member = memberData.find(m => m.id === currentEditingMemberId); if (!member) return;
+            const cell = event.target; const key = `${cell.dataset.time}-${cell.dataset.day}`;
+            if (member.exclusions.has(key)) {
+                member.exclusions.delete(key); const reasonInput = cell.querySelector('.exclusion-reason');
+                if (reasonInput) reasonInput.remove(); cell.classList.remove('excluded'); cell.textContent = '○';
+            } else {
+                // ⭐⭐⭐ 2. 열외 사유 입력 로직 변경 ⭐⭐⭐
+                const reason = prompt("열외 사유를 입력하세요 (입력하지 않으면 사유 없음):", "");
+                if (reason === null) return;
+                member.exclusions.set(key, reason);
+                openModal(currentEditingMemberId);
+            }
+        });
         function deleteMember(id) { const memberIndex = memberData.findIndex(m => m.id === id); if (memberIndex === -1) return; if (confirm(`'${memberData[memberIndex].name || '이름 없는 인원'}' 님을 삭제하시겠습니까?`)) { memberData.splice(memberIndex, 1); renderMemberTable(); updateTotals(); } }
         function updateMember(id, field, value) { const member = memberData.find(m => m.id === id); if (!member) return; if (field === 'rank' || field === 'duties') { member[field] = parseInt(value, 10) || 0; } else if (field === 'name') { member[field] = value.trim(); } if(field === 'duties') updateTotals(); }
         function getRankSymbol(rank) { switch(parseInt(rank, 10)) { case 1: return '_1'; case 2: return '_2'; case 3: return '_3'; case 4: return '_4'; default: return ''; } }
@@ -412,7 +427,7 @@
         window.onclick = function(event) { if (event.target == document.getElementById('exclusion-modal')) closeModal(); }
         function runScheduler() { const names = memberData.map(m => m.name).filter(name => name); if (names.length !== memberData.length) { alert("이름이 비어있는 인원이 있습니다. 모든 인원의 이름을 입력해주세요."); return; } if (new Set(names).size !== names.length) { alert("중복된 이름이 있습니다. 이름을 수정해주세요."); return; } const requiredPersonnel = Array.from(document.querySelectorAll('#required-personnel-table tbody tr')).map(row => Array.from(row.querySelectorAll('input')).map(input => parseInt(input.value, 10) || 0)); const totalRequired = requiredPersonnel.flat().reduce((sum, val) => sum + val, 0); const totalDuties = memberData.reduce((sum, m) => sum + m.duties, 0); if (totalDuties < totalRequired) { alert(`전체 식기조 횟수(${totalDuties})가 필요 인원(${totalRequired})보다 적습니다. 일치하도록 조절해주세요.`); return; } for (let time = 0; time < 3; time++) { for (let day = 0; day < 7; day++) { const required = requiredPersonnel[time][day]; const availableMembers = memberData.filter(m => !m.exclusions.has(`${time}-${day}`)); if (availableMembers.length < required) { const timeMap = ['조식', '중식', '석식'], dayMap = ['월', '화', '수', '목', '금', '토', '일']; alert(`${dayMap[day]}요일 ${timeMap[time]}에 가용 인원(${availableMembers.length}명)이 필요 인원(${required}명)보다 적어 편성이 불가능합니다.`); return; } } } let schedule = Array.from({ length: 3 }, () => Array.from({ length: 7 }, () => [])); let membersToSchedule = memberData.map(m => ({ ...m, dutiesLeft: m.duties, mealCounts: { 0: 0, 1: 0, 2: 0 } })); let slotsToFill = []; for (let time = 0; time < 3; time++) { for (let day = 0; day < 7; day++) { for (let i = 0; i < requiredPersonnel[time][day]; i++) { slotsToFill.push({ time, day }); } } } slotsToFill.sort(() => Math.random() - 0.5); for (const slot of slotsToFill) { membersToSchedule.sort((a, b) => { if (b.dutiesLeft !== a.dutiesLeft) return b.dutiesLeft - a.dutiesLeft; if (a.mealCounts[slot.time] !== b.mealCounts[slot.time]) return a.mealCounts[slot.time] - b.mealCounts[slot.time]; return Math.random() - 0.5; }); for (const member of membersToSchedule) { if (member.dutiesLeft > 0 && !member.exclusions.has(`${slot.time}-${slot.day}`) && !schedule[slot.time][slot.day].includes(member.name)) { schedule[slot.time][slot.day].push(member.name); member.dutiesLeft--; member.mealCounts[slot.time]++; break; } } } lastScheduleData = schedule; renderSchedule(schedule); renderSummary(); alert("편성이 완료되었습니다!"); }
         function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => { alert("클립보드에 복사되었습니다."); }, () => { alert("복사에 실패했습니다."); }); }
-        function copyAsText() { if (!lastScheduleData) { alert("먼저 편성을 실행해주세요."); return; } const days = ['월', '화', '수', '목', '금', '토', '일']; const times = ['조식', '중식', '석식']; let textOutput = ''; days.forEach((day, dayIndex) => { textOutput += `[${day}]\n`; times.forEach((time, timeIndex) => { const members = lastScheduleData[timeIndex][dayIndex] || []; const excluded = memberData.filter(m => m.name && m.exclusions.has(`${timeIndex}-${dayIndex}`)); const memberNamesWithRank = members.map(name => { const member = memberData.find(m => m.name === name); return member ? `${getRankSymbol(member.rank)}${member.name}` : name; }); textOutput += `${time} | ${memberNamesWithRank.join(' ')}\n`; if (excluded.length > 0) { textOutput += `(열외: ${excluded.map(m => `${m.name}(${m.exclusions.get(`${timeIndex}-${dayIndex}`)})`).join(' ')})\n`; } }); textOutput += '\n'; }); copyToClipboard(textOutput.trim()); }
+        function copyAsText() { if (!lastScheduleData) { alert("먼저 편성을 실행해주세요."); return; } const days = ['월', '화', '수', '목', '금', '토', '일']; const times = ['조식', '중식', '석식']; let textOutput = ''; days.forEach((day, dayIndex) => { textOutput += `[${day}]\n`; times.forEach((time, timeIndex) => { const members = lastScheduleData[timeIndex][dayIndex] || []; const excluded = memberData.filter(m => m.name && m.exclusions.has(`${timeIndex}-${dayIndex}`)); const memberNamesWithRank = members.map(name => { const member = memberData.find(m => m.name === name); return member ? `${getRankSymbol(member.rank)}${member.name}` : name; }); textOutput += `${time} | ${memberNamesWithRank.join(' ')}\n`; if (excluded.length > 0) { const excludedText = excluded.map(m => { const reason = m.exclusions.get(`${timeIndex}-${dayIndex}`); return reason ? `${m.name}(${reason})` : m.name; }).join(' '); textOutput += `(열외: ${excludedText})\n`; } }); textOutput += '\n'; }); copyToClipboard(textOutput.trim()); }
         function copyAsTable() { if (!lastScheduleData) { alert("먼저 편성을 실행해주세요."); return; } const times = ['조식', '중식', '석식']; let tableText = ' \t월\t화\t수\t목\t금\t토\t일\n'; times.forEach((time, timeIndex) => { tableText += `${time}\t`; for (let dayIndex = 0; dayIndex < 7; dayIndex++) { const members = lastScheduleData[timeIndex][dayIndex] || []; const memberNamesWithRank = members.map(name => { const member = memberData.find(m => m.name === name); return member ? `${getRankSymbol(member.rank)}${member.name}` : name; }); tableText += `${memberNamesWithRank.join(', ')}\t`; } tableText += '\n'; }); copyToClipboard(tableText.trim()); }
     </script>
 </body>
