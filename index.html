@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>식기조 편성기</title>
+
+    <style>
+        :root {
+            --color-primary: #007bff; --color-secondary: #6c757d; --color-success: #28a745;
+            --color-danger: #dc3545; --color-warning: #ffc107; --color-info: #17a2b8;
+            --color-light: #f8f9fa; --color-dark: #343a40; --border-radius: 8px;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            margin: 0; padding: 20px; background-color: var(--color-light); color: var(--color-dark);
+            display: flex; flex-direction: column; align-items: center;
+        }
+        h1, h2 { color: var(--color-dark); text-align: center; }
+        h3 { display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .instructions-container { width: 100%; max-width: 1200px; margin-bottom: 20px; }
+        .toggle-btn {
+            width: 100%; padding: 15px; font-size: 18px; font-weight: bold; cursor: pointer;
+            border: none; border-radius: var(--border-radius); color: white; text-align: center; margin-bottom: 10px;
+        }
+        .toggle-intro-btn { background-color: var(--color-info); }
+        .toggle-instructions-btn { background-color: var(--color-success); }
+        .collapsible-content {
+            max-height: 0; overflow: hidden; background-color: #f8f9fa; border-radius: var(--border-radius);
+            transition: max-height 0.5s ease-out; padding: 0 20px; border: 1px solid #e9ecef;
+        }
+        .collapsible-content.active { max-height: 800px; padding: 20px; }
+        .collapsible-content h3 { margin-top: 0; }
+        .collapsible-content ul, .collapsible-content ol { padding-left: 20px; line-height: 1.8; }
+        .collapsible-content li strong { color: var(--color-primary); }
+        .collapsible-content .caution { color: var(--color-danger); font-weight: bold; }
+        .maker-credit { text-align: right; color: #888; font-size: 14px; margin-top: 15px; }
+
+        .container {
+            width: 100%; max-width: 1200px; background-color: white; padding: 25px;
+            border-radius: var(--border-radius); box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px; box-sizing: border-box;
+        }
+        .table-container { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td {
+            border: 1px solid #dee2e6; padding: 12px; text-align: center;
+            vertical-align: middle; white-space: nowrap; 
+        }
+        th { background-color: #e9ecef; }
+        td input[type="number"], td input[type="text"] {
+            width: 100%; box-sizing: border-box; text-align: center; border: 1px solid #ced4da;
+            border-radius: 4px; padding: 8px; font-size: 16px;
+        }
+        
+        #required-personnel-table th, #required-personnel-table td { min-width: 70px; }
+        #member-info-table th:nth-child(1), #member-info-table td:nth-child(1) { min-width: 80px; }
+        #member-info-table th:nth-child(2), #member-info-table td:nth-child(2) { min-width: 150px; }
+        #member-info-table th:nth-child(3), #member-info-table td:nth-child(3) { min-width: 110px; }
+        #member-info-table th:nth-child(4), #member-info-table td:nth-child(4) { min-width: 90px; }
+        #member-info-table th:nth-child(5), #member-info-table td:nth-child(5) { min-width: 90px; }
+
+        .total-cell { font-weight: bold; text-align: right; }
+        .action-buttons { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 20px; }
+        button {
+            padding: 12px 20px; font-size: 16px; font-weight: bold; cursor: pointer;
+            border: none; border-radius: var(--border-radius); color: white;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        button:active { transform: scale(0.98); }
+        .btn-add { background-color: var(--color-secondary); }
+        .btn-schedule { background-color: var(--color-primary); }
+        .btn-copy { background-color: var(--color-warning); color: var(--color-dark); }
+        .btn-data { background-color: #545b62; }
+        .btn-small { font-size: 14px; padding: 8px 12px; }
+        .btn-exclusion { background-color: var(--color-success); }
+        .btn-delete { background-color: var(--color-danger); }
+        .output-cell { font-size: 14px; line-height: 1.6; min-width: 120px; }
+        .output-cell .member { display: block; padding: 4px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s; }
+        .output-cell .member:active { cursor: grabbing; }
+        .output-cell .excluded-list { margin-top: 8px; font-size: 12px; color: var(--color-primary); }
+        .highlight { background-color: #fff3cd !important; }
+        .summary-highlight { background-color: #fff3cd; border-radius: 4px; padding: 2px 4px; }
+        .drag-over { background-color: #cce5ff; }
+        #summary-cell { padding: 15px; text-align: left; white-space: normal; line-height: 1.8; font-size: 14px; }
+        #summary-cell span { cursor: pointer; }
+        
+        /* ⭐ 도움말 아이콘 스타일 */
+        .help-icon {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background-color: var(--color-secondary);
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            line-height: 20px;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+        }
+        
+        /* 인쇄용 스타일 */
+        @media print {
+            body { padding: 0; margin: 0; }
+            .no-print { display: none !important; }
+            .container { box-shadow: none; border: 1px solid #dee2e6; margin: 0; max-width: 100%; }
+            h1, h2 { margin-top: 0; padding-top: 20px; }
+        }
+        
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background-color: white; padding: 30px; border-radius: var(--border-radius);
+            width: 90%; max-width: 800px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h3 { margin: 0; }
+        .close-button { font-size: 28px; font-weight: bold; cursor: pointer; }
+        .exclusion-table .day-cell { cursor: pointer; }
+        .exclusion-table .day-cell.excluded { background-color: var(--color-danger); color: white; }
+        .exclusion-reason { margin-top: 5px; width: 100%; box-sizing: border-box; padding: 5px; border-radius: 4px; border: 1px solid #ced4da; }
+    </style>
+</head>
+<body>
+    <div class="instructions-container no-print">
+        <button id="toggle-intro-btn" class="toggle-btn toggle-intro-btn">✨ 이 앱은 무엇인가요? (소개)</button>
+        <div id="intro-content" class="collapsible-content">
+            <h3>단순하고 공정한 자동 편성 솔루션</h3>
+            <p><strong>식기조 편성기</strong>는 매주 반복되는 번거로운 식기조 편성 업무를 단 한 번의 클릭으로 해결하기 위해 만들어졌습니다.</p>
+            <ul>
+                <li><strong>빠르고 정확한 편성:</strong> 복잡한 열외 조건과 인원별 횟수를 모두 고려하여 수 초 내에 최적의 편성표를 완성합니다.</li>
+                <li><strong>공정한 분배:</strong> 특정인에게 근무가 편중되지 않도록 조식/중식/석식 근무를 최대한 공평하게 분배합니다.</li>
+                <li><strong>편리한 관리 및 수정:</strong> 편성 후 결과를 드래그 앤 드롭으로 쉽게 수정하고, 인원 목록을 저장하고 불러올 수 있습니다.</li>
+                <li><strong>'브런치 데이' 적용:</strong> 토요일 점심은 식기조가 없는 '브런치 데이'가 기본값(0명)으로 반영되어 있습니다. 필요시 인원을 수정할 수 있습니다.</li>
+            </ul>
+            <p class="maker-credit">made by 채영윤(25.4)</p>
+        </div>
+        <button id="toggle-instructions-btn" class="toggle-btn toggle-instructions-btn">💡 사용방법 보기</button>
+        <div id="instructions-content" class="collapsible-content">
+             <h3>식기조 편성기 사용법</h3>
+            <ol>
+                <li><strong>데이터 관리:</strong> `💾 저장` 버튼으로 현재 인원 목록과 필요인원 설정을 저장하고, `📂 불러오기`로 복원할 수 있습니다.</li>
+                <li><strong>정보 입력:</strong> 계급, 이름, 횟수를 입력하고 `+ 인원 추가`, `삭제` 버튼으로 인원을 관리합니다.</li>
+                <li><strong>편성 시작:</strong> `🚀 편성 시작` 버튼을 눌러 결과를 확인합니다.</li>
+                <li><strong>결과 확인 및 수정:</strong>
+                    <ul>
+                        <li><strong>하이라이트:</strong> 결과표나 하단 요약 줄의 특정 인원을 클릭하면 해당 인원의 모든 근무 시간이 강조 표시됩니다.</li>
+                        <li><strong>수동 수정:</strong> 인원 이름을 마우스로 끌어 다른 칸으로 옮겨(드래그 앤 드롭) 편성을 수정할 수 있습니다. (열외 시간에는 이동 불가)</li>
+                    </ul>
+                </li>
+                <li><strong>공유 및 인쇄:</strong> `텍스트/표 복사` 또는 `🖨️ 인쇄` 버튼으로 결과를 공유하거나 출력합니다.</li>
+            </ol>
+            <h3 class="caution">⚠️ 주의사항</h3>
+            <ul>
+                <li><strong>'총 필요인원'</strong>과 <strong>'총 횟수 합계'</strong>가 일치하는지 항상 확인해주세요.</li>
+                <li>편성 시작 전, 모든 인원의 <strong>이름이 비어있거나 중복되지 않았는지</strong> 확인해주세요.</li>
+            </ul>
+        </div>
+    </div>
+    
+    <h1>🍽️ 식기조 편성기</h1>
+
+    <div class="container">
+        <div class="action-buttons no-print">
+            <button class="btn-data" onclick="saveData()">💾 저장</button>
+            <button class="btn-data" onclick="loadData()">📂 불러오기</button>
+        </div>
+        <h2 class="no-print">1. 정보 입력</h2>
+        <h3 class="no-print">시간별 필요인원</h3>
+        <div class="table-container no-print">
+            <table id="required-personnel-table"></table>
+        </div>
+        <h3 class="no-print">인원 정보</h3>
+        <div class="table-container no-print">
+            <table id="member-info-table">
+                <thead>
+                    <tr><th>계급</th><th>이름</th><th>식기조 횟수</th><th>열외 설정</th><th>삭제</th></tr>
+                </thead>
+                <tbody></tbody>
+                 <tfoot><tr><td class="total-cell" colspan="2">총 횟수 합계:</td><td colspan="3" id="total-duties">0</td></tr></tfoot>
+            </table>
+        </div>
+        <div class="action-buttons no-print">
+            <button class="btn-add" onclick="addMember()">+ 인원 추가</button>
+            <button class="btn-schedule" onclick="runScheduler()">🚀 편성 시작</button>
+        </div>
+    </div>
+    <div class="container">
+        <h2>2. 편성 결과 <span class="help-icon no-print" onclick="alert('결과표의 이름을 클릭하면 해당 인원의 모든 근무가 강조 표시됩니다. \n이름을 드래그하여 다른 칸으로 옮겨 수동으로 수정할 수도 있습니다.')">ⓘ</span></h2>
+        <div class="table-container">
+            <table id="output-table">
+                 <thead><tr><th>@</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th><th>일</th></tr></thead>
+                 <tbody></tbody>
+                 <tfoot>
+                    <tr>
+                        <td id="summary-cell" colspan="8">편성 후 이곳에 인원별 횟수 요약이 표시됩니다.</td>
+                    </tr>
+                 </tfoot>
+            </table>
+        </div>
+        <div class="action-buttons no-print">
+            <button class="btn-copy" onclick="copyAsText()">📄 텍스트로 복사</button>
+            <button class="btn-copy" onclick="copyAsTable()">📋 표(엑셀)로 복사</button>
+            <button class="btn-data" onclick="window.print()">🖨️ 인쇄</button>
+        </div>
+    </div>
+    
+    <div id="exclusion-modal" class="modal no-print"></div>
+
+    <script>
+        let memberData = [];
+        let memberIdCounter = 0;
+        let lastScheduleData = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const toggleIntroBtn = document.getElementById('toggle-intro-btn');
+            const introContent = document.getElementById('intro-content');
+            toggleIntroBtn.addEventListener('click', () => {
+                const isActive = introContent.classList.toggle('active');
+                toggleIntroBtn.textContent = isActive ? '😊 앱 소개 닫기' : '✨ 이 앱은 무엇인가요? (소개)';
+            });
+            const toggleInstructionsBtn = document.getElementById('toggle-instructions-btn');
+            const instructionsContent = document.getElementById('instructions-content');
+            toggleInstructionsBtn.addEventListener('click', () => {
+                const isActive = instructionsContent.classList.toggle('active');
+                toggleInstructionsBtn.textContent = isActive ? '👍 사용방법 숨기기' : '💡 사용방법 보기';
+            });
+            
+            document.getElementById('required-personnel-table').innerHTML = `<thead><tr><th>@</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th><th>일</th></tr></thead><tbody><tr><td>조식</td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td></tr><tr><td>중식</td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="0" min="0"></td><td><input type="number" value="3" min="0"></td></tr><tr><td>석식</td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td><td><input type="number" value="3" min="0"></td></tr></tbody><tfoot><tr><td colspan="8" class="total-cell">총 필요인원: <span id="total-required">60</span></td></tr></tfoot>`;
+            document.getElementById('output-table').querySelector('tbody').innerHTML = `<tr><td>조식</td><td data-time="0" data-day="0"></td><td data-time="0" data-day="1"></td><td data-time="0" data-day="2"></td><td data-time="0" data-day="3"></td><td data-time="0" data-day="4"></td><td data-time="0" data-day="5"></td><td data-time="0" data-day="6"></td></tr><tr><td>중식</td><td data-time="1" data-day="0"></td><td data-time="1" data-day="1"></td><td data-time="1" data-day="2"></td><td data-time="1" data-day="3"></td><td data-time="1" data-day="4"></td><td data-time="1" data-day="5"></td><td data-time="1" data-day="6"></td></tr><tr><td>석식</td><td data-time="2" data-day="0"></td><td data-time="2" data-day="1"></td><td data-time="2" data-day="2"></td><td data-time="2" data-day="3"></td><td data-time="2" data-day="4"></td><td data-time="2" data-day="5"></td><td data-time="2" data-day="6"></td></tr>`;
+            document.getElementById('exclusion-modal').innerHTML = `<div class="modal-content"><div class="modal-header"><h3 id="modal-title"></h3><span class="close-button" onclick="closeModal()">&times;</span></div><table class="exclusion-table"><thead><tr><th>@</th><th>월</th><th>화</th><th>수</th><th>목</th><th>금</th><th>토</th><th>일</th></tr></thead><tbody><tr><td>조식</td><td class="day-cell" data-time="0" data-day="0"></td><td class="day-cell" data-time="0" data-day="1"></td><td class="day-cell" data-time="0" data-day="2"></td><td class="day-cell" data-time="0" data-day="3"></td><td class="day-cell" data-time="0" data-day="4"></td><td class="day-cell" data-time="0" data-day="5"></td><td class="day-cell" data-time="0" data-day="6"></td></tr><tr><td>중식</td><td class="day-cell" data-time="1" data-day="0"></td><td class="day-cell" data-time="1" data-day="1"></td><td class="day-cell" data-time="1" data-day="2"></td><td class="day-cell" data-time="1" data-day="3"></td><td class="day-cell" data-time="1" data-day="4"></td><td class="day-cell" data-time="1" data-day="5"></td><td class="day-cell" data-time="1" data-day="6"></td></tr><tr><td>석식</td><td class="day-cell" data-time="2" data-day="0"></td><td class="day-cell" data-time="2" data-day="1"></td><td class="day-cell" data-time="2" data-day="2"></td><td class="day-cell" data-time="2" data-day="3"></td><td class="day-cell" data-time="2" data-day="4"></td><td class="day-cell" data-time="2" data-day="5"></td><td class="day-cell" data-time="2" data-day="6"></td></tr></tbody></table></div>`;
+            
+            if (localStorage.getItem('sikgijoData')) {
+                loadData();
+            } else {
+                for (let i = 0; i < 8; i++) { addMember(true); }
+                autoSetDuties();
+            }
+            const requiredInputs = document.querySelectorAll('#required-personnel-table input');
+            requiredInputs.forEach(input => input.addEventListener('input', updateTotalRequired));
+            updateTotalRequired();
+            
+            setupOutputTableInteractions();
+            document.getElementById('summary-cell').addEventListener('click', (e) => {
+                if (e.target.tagName === 'SPAN') {
+                    highlightMember(e.target.dataset.name);
+                }
+            });
+        });
+
+        function autoSetDuties() {
+            const totalRequired = Array.from(document.querySelectorAll('#required-personnel-table input')).reduce((sum, input) => sum + (parseInt(input.value, 10) || 0), 0);
+            const numMembers = memberData.length;
+            if (numMembers === 0) return;
+            const baseDuties = Math.floor(totalRequired / numMembers);
+            const remainder = totalRequired % numMembers;
+            memberData.forEach((member, index) => {
+                member.duties = baseDuties + (index < remainder ? 1 : 0);
+            });
+            renderMemberTable();
+            updateTotals();
+        }
+        
+        function saveData() {
+            const requiredPersonnelValues = Array.from(document.querySelectorAll('#required-personnel-table input')).map(input => input.value);
+            const serializableMemberData = memberData.map(m => ({
+                ...m,
+                exclusions: Array.from(m.exclusions.entries())
+            }));
+            const dataToSave = { members: serializableMemberData, required: requiredPersonnelValues };
+            localStorage.setItem('sikgijoData', JSON.stringify(dataToSave));
+            alert('현재 상태가 브라우저에 저장되었습니다.');
+        }
+
+        function loadData() {
+            const savedData = JSON.parse(localStorage.getItem('sikgijoData'));
+            if (!savedData) {
+                alert('저장된 데이터가 없습니다.');
+                return;
+            }
+            memberData = savedData.members.map(m => ({ ...m, exclusions: new Map(m.exclusions) }));
+            memberIdCounter = memberData.length > 0 ? Math.max(...memberData.map(m => m.id)) + 1 : 0;
+            const requiredInputs = document.querySelectorAll('#required-personnel-table input');
+            savedData.required.forEach((val, index) => {
+                if(requiredInputs[index]) requiredInputs[index].value = val;
+            });
+            renderMemberTable();
+            updateTotals();
+            alert('저장된 데이터를 불러왔습니다.');
+        }
+        
+        function renderMemberTable() {
+            const tableBody = document.querySelector('#member-info-table tbody');
+            tableBody.innerHTML = '';
+            memberData.forEach(member => {
+                 const newRow = tableBody.insertRow();
+                newRow.id = `member-row-${member.id}`;
+                newRow.innerHTML = `<td><input type="number" value="${member.rank}" min="1" max="4" oninput="updateMember(${member.id}, 'rank', this.value)"></td><td><input type="text" value="${member.name}" placeholder="이름 입력" onchange="updateMember(${member.id}, 'name', this.value)"></td><td><input type="number" value="${member.duties}" min="0" oninput="updateMember(${member.id}, 'duties', this.value)"></td><td><button class="btn-exclusion btn-small" onclick="openModal(${member.id})">설정</button></td><td><button class="btn-delete btn-small" onclick="deleteMember(${member.id})">삭제</button></td>`;
+            });
+        }
+        
+        function highlightMember(memberName) {
+            document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+            document.querySelectorAll('.summary-highlight').forEach(el => el.classList.remove('summary-highlight'));
+            
+            if (memberName) {
+                document.querySelectorAll(`.member[data-name="${memberName}"]`).forEach(el => el.classList.add('highlight'));
+                const summarySpan = document.querySelector(`#summary-cell span[data-name="${memberName}"]`);
+                if(summarySpan) summarySpan.classList.add('summary-highlight');
+            }
+        }
+        
+        function setupOutputTableInteractions() {
+            const outputTable = document.getElementById('output-table');
+            let draggedItem = null;
+            outputTable.addEventListener('click', (e) => {
+                if (e.target.classList.contains('member')) {
+                    highlightMember(e.target.dataset.name);
+                }
+            });
+            outputTable.addEventListener('dragstart', (e) => { if (e.target.classList.contains('member')) { draggedItem = e.target; setTimeout(() => e.target.style.opacity = '0.5', 0); } });
+            outputTable.addEventListener('dragend', (e) => { if (draggedItem) { draggedItem.style.opacity = '1'; draggedItem = null; } });
+            outputTable.addEventListener('dragover', (e) => { e.preventDefault(); const targetCell = e.target.closest('td[data-time]'); if (targetCell) { document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over')); targetCell.classList.add('drag-over'); } });
+            outputTable.addEventListener('dragleave', (e) => { const targetCell = e.target.closest('td[data-time]'); if (targetCell) { targetCell.classList.remove('drag-over'); } });
+            outputTable.addEventListener('drop', (e) => {
+                e.preventDefault();
+                document.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+                const targetCell = e.target.closest('td[data-time]');
+                if (targetCell && draggedItem) {
+                    const memberName = draggedItem.dataset.name;
+                    const member = memberData.find(m => m.name === memberName);
+                    const targetKey = `${targetCell.dataset.time}-${targetCell.dataset.day}`;
+                    if (member && member.exclusions.has(targetKey)) { alert(`${memberName}님은 해당 시간에 열외로 설정되어 이동할 수 없습니다.`); return; }
+                    const sourceCell = draggedItem.parentElement;
+                    const sourceKey = `${sourceCell.dataset.time}-${sourceCell.dataset.day}`;
+                    const sourceTime = sourceKey.split('-')[0], sourceDay = sourceKey.split('-')[1];
+                    lastScheduleData[sourceTime][sourceDay] = lastScheduleData[sourceTime][sourceDay].filter(name => name !== memberName);
+                    const targetTime = targetKey.split('-')[0], targetDay = targetKey.split('-')[1];
+                    lastScheduleData[targetTime][targetDay].push(memberName);
+                    renderSchedule(lastScheduleData);
+                }
+            });
+        }
+        
+        function addMember(isInitial = false) {
+            const newId = memberIdCounter++;
+            const newMember = { id: newId, rank: 1, name: '', duties: 0, exclusions: new Map() };
+            memberData.push(newMember);
+            if (!isInitial) { renderMemberTable(); updateTotals(); }
+        }
+        
+        function renderSchedule(schedule) {
+            document.querySelectorAll('#output-table td[data-time]').forEach(cell => {
+                cell.innerHTML = '';
+                const time = cell.dataset.time, day = cell.dataset.day;
+                const scheduledMembers = schedule[time][day] || [];
+                scheduledMembers.forEach(name => {
+                    const member = memberData.find(m => m.name === name);
+                    if (!member) return;
+                    const memberDiv = document.createElement('div');
+                    memberDiv.className = 'member';
+                    memberDiv.textContent = `${getRankSymbol(member.rank)}${member.name}`;
+                    memberDiv.dataset.name = name;
+                    memberDiv.draggable = true;
+                    cell.appendChild(memberDiv);
+                });
+                const excludedInThisSlot = memberData.filter(m => m.name && m.exclusions.has(`${time}-${day}`));
+                if (excludedInThisSlot.length > 0) {
+                    const excludedDiv = document.createElement('div');
+                    excludedDiv.className = 'excluded-list';
+                    excludedDiv.textContent = `(열외: ${excludedInThisSlot.map(m => `${m.name}(${m.exclusions.get(`${time}-${day}`)})`).join(', ')})`;
+                    cell.appendChild(excludedDiv);
+                }
+            });
+        }
+        
+        function renderSummary() {
+            const summaryCell = document.getElementById('summary-cell');
+            summaryCell.innerHTML = ''; // Clear previous summary
+            const summarySpans = memberData.filter(m => m.name).map(m => {
+                const span = document.createElement('span');
+                span.dataset.name = m.name;
+                span.textContent = `${getRankSymbol(m.rank)}${m.name}(${m.duties})`;
+                return span;
+            });
+            summarySpans.forEach((span, index) => {
+                summaryCell.appendChild(span);
+                if (index < summarySpans.length - 1) {
+                    summaryCell.appendChild(document.createTextNode(', '));
+                }
+            });
+            if (summarySpans.length === 0) {
+                summaryCell.textContent = '편성 후 이곳에 인원별 횟수 요약이 표시됩니다.';
+            }
+        }
+        
+        // --- 나머지 함수들 ---
+        let currentEditingMemberId = null;
+        function openModal(id) { currentEditingMemberId = id; const member = memberData.find(m => m.id === id); if (!member) return; document.getElementById('modal-title').textContent = `${member.name || '이름 없는 인원'} 열외 설정`; const modal = document.getElementById('exclusion-modal'); modal.querySelectorAll('.day-cell').forEach(cell => { const key = `${cell.dataset.time}-${cell.dataset.day}`; const existingReasonInput = cell.querySelector('.exclusion-reason'); if (existingReasonInput) existingReasonInput.remove(); if (member.exclusions.has(key)) { cell.classList.add('excluded'); cell.innerHTML = '●'; const reasonInput = document.createElement('input'); reasonInput.type = 'text'; reasonInput.className = 'exclusion-reason'; reasonInput.placeholder = '사유 입력'; reasonInput.value = member.exclusions.get(key); reasonInput.onclick = (e) => e.stopPropagation(); reasonInput.onchange = (e) => { member.exclusions.set(key, e.target.value); }; cell.appendChild(reasonInput); } else { cell.classList.remove('excluded'); cell.textContent = '○'; } }); modal.style.display = 'flex'; }
+        document.getElementById('exclusion-modal').addEventListener('click', (event) => { if (!event.target.classList.contains('day-cell')) return; if (currentEditingMemberId === null) return; const member = memberData.find(m => m.id === currentEditingMemberId); if (!member) return; const cell = event.target; const key = `${cell.dataset.time}-${cell.dataset.day}`; if (member.exclusions.has(key)) { member.exclusions.delete(key); const reasonInput = cell.querySelector('.exclusion-reason'); if (reasonInput) reasonInput.remove(); cell.classList.remove('excluded'); cell.textContent = '○'; } else { const reason = prompt("열외 사유를 입력하세요 (취소 시 '열외'):", "열외"); if (reason === null) return; member.exclusions.set(key, reason); openModal(currentEditingMemberId); } });
+        function deleteMember(id) { const memberIndex = memberData.findIndex(m => m.id === id); if (memberIndex === -1) return; if (confirm(`'${memberData[memberIndex].name || '이름 없는 인원'}' 님을 삭제하시겠습니까?`)) { memberData.splice(memberIndex, 1); renderMemberTable(); updateTotals(); } }
+        function updateMember(id, field, value) { const member = memberData.find(m => m.id === id); if (!member) return; if (field === 'rank' || field === 'duties') { member[field] = parseInt(value, 10) || 0; } else if (field === 'name') { member[field] = value.trim(); } if(field === 'duties') updateTotals(); }
+        function getRankSymbol(rank) { switch(parseInt(rank, 10)) { case 1: return '_1'; case 2: return '_2'; case 3: return '_3'; case 4: return '_4'; default: return ''; } }
+        function updateTotals() { const totalDuties = memberData.reduce((sum, m) => sum + m.duties, 0); document.getElementById('total-duties').textContent = totalDuties; updateTotalRequired(); }
+        function updateTotalRequired() { const requiredInputs = document.querySelectorAll('#required-personnel-table input'); const totalRequired = Array.from(requiredInputs).reduce((sum, input) => sum + (parseInt(input.value, 10) || 0), 0); document.getElementById('total-required').textContent = totalRequired; }
+        function closeModal() { document.getElementById('exclusion-modal').style.display = 'none'; currentEditingMemberId = null; }
+        window.onclick = function(event) { if (event.target == document.getElementById('exclusion-modal')) closeModal(); }
+        function runScheduler() { const names = memberData.map(m => m.name).filter(name => name); if (names.length !== memberData.length) { alert("이름이 비어있는 인원이 있습니다. 모든 인원의 이름을 입력해주세요."); return; } if (new Set(names).size !== names.length) { alert("중복된 이름이 있습니다. 이름을 수정해주세요."); return; } const requiredPersonnel = Array.from(document.querySelectorAll('#required-personnel-table tbody tr')).map(row => Array.from(row.querySelectorAll('input')).map(input => parseInt(input.value, 10) || 0)); const totalRequired = requiredPersonnel.flat().reduce((sum, val) => sum + val, 0); const totalDuties = memberData.reduce((sum, m) => sum + m.duties, 0); if (totalDuties < totalRequired) { alert(`전체 식기조 횟수(${totalDuties})가 필요 인원(${totalRequired})보다 적습니다. 일치하도록 조절해주세요.`); return; } for (let time = 0; time < 3; time++) { for (let day = 0; day < 7; day++) { const required = requiredPersonnel[time][day]; const availableMembers = memberData.filter(m => !m.exclusions.has(`${time}-${day}`)); if (availableMembers.length < required) { const timeMap = ['조식', '중식', '석식'], dayMap = ['월', '화', '수', '목', '금', '토', '일']; alert(`${dayMap[day]}요일 ${timeMap[time]}에 가용 인원(${availableMembers.length}명)이 필요 인원(${required}명)보다 적어 편성이 불가능합니다.`); return; } } } let schedule = Array.from({ length: 3 }, () => Array.from({ length: 7 }, () => [])); let membersToSchedule = memberData.map(m => ({ ...m, dutiesLeft: m.duties, mealCounts: { 0: 0, 1: 0, 2: 0 } })); let slotsToFill = []; for (let time = 0; time < 3; time++) { for (let day = 0; day < 7; day++) { for (let i = 0; i < requiredPersonnel[time][day]; i++) { slotsToFill.push({ time, day }); } } } slotsToFill.sort(() => Math.random() - 0.5); for (const slot of slotsToFill) { membersToSchedule.sort((a, b) => { if (b.dutiesLeft !== a.dutiesLeft) return b.dutiesLeft - a.dutiesLeft; if (a.mealCounts[slot.time] !== b.mealCounts[slot.time]) return a.mealCounts[slot.time] - b.mealCounts[slot.time]; return Math.random() - 0.5; }); for (const member of membersToSchedule) { if (member.dutiesLeft > 0 && !member.exclusions.has(`${slot.time}-${slot.day}`) && !schedule[slot.time][slot.day].includes(member.name)) { schedule[slot.time][slot.day].push(member.name); member.dutiesLeft--; member.mealCounts[slot.time]++; break; } } } lastScheduleData = schedule; renderSchedule(schedule); renderSummary(); alert("편성이 완료되었습니다!"); }
+        function copyToClipboard(text) { navigator.clipboard.writeText(text).then(() => { alert("클립보드에 복사되었습니다."); }, () => { alert("복사에 실패했습니다."); }); }
+        function copyAsText() { if (!lastScheduleData) { alert("먼저 편성을 실행해주세요."); return; } const days = ['월', '화', '수', '목', '금', '토', '일']; const times = ['조식', '중식', '석식']; let textOutput = ''; days.forEach((day, dayIndex) => { textOutput += `[${day}]\n`; times.forEach((time, timeIndex) => { const members = lastScheduleData[timeIndex][dayIndex] || []; const excluded = memberData.filter(m => m.name && m.exclusions.has(`${timeIndex}-${dayIndex}`)); const memberNamesWithRank = members.map(name => { const member = memberData.find(m => m.name === name); return member ? `${getRankSymbol(member.rank)}${member.name}` : name; }); textOutput += `${time} | ${memberNamesWithRank.join(' ')}\n`; if (excluded.length > 0) { textOutput += `(열외: ${excluded.map(m => `${m.name}(${m.exclusions.get(`${timeIndex}-${dayIndex}`)})`).join(' ')})\n`; } }); textOutput += '\n'; }); copyToClipboard(textOutput.trim()); }
+        function copyAsTable() { if (!lastScheduleData) { alert("먼저 편성을 실행해주세요."); return; } const times = ['조식', '중식', '석식']; let tableText = ' \t월\t화\t수\t목\t금\t토\t일\n'; times.forEach((time, timeIndex) => { tableText += `${time}\t`; for (let dayIndex = 0; dayIndex < 7; dayIndex++) { const members = lastScheduleData[timeIndex][dayIndex] || []; const memberNamesWithRank = members.map(name => { const member = memberData.find(m => m.name === name); return member ? `${getRankSymbol(member.rank)}${member.name}` : name; }); tableText += `${memberNamesWithRank.join(', ')}\t`; } tableText += '\n'; }); copyToClipboard(tableText.trim()); }
+    </script>
+</body>
+</html>
